@@ -2,7 +2,8 @@ import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
-import createHttpError from 'http-errors';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 
 import { router as indexRouter } from './routes/index';
 
@@ -14,7 +15,12 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
+const swaggerYAML = YAML.load('./docs/swagger.yml');
+
+console.dir(process.env);
+
+app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerYAML));
+app.use('/api/v1/', indexRouter);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.sendStatus(404);

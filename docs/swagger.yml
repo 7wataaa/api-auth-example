@@ -1,0 +1,146 @@
+swagger: '2.0'
+info:
+  description: Web APIを作るときのベース。Email&Password認証付き。
+  version: 1.0.0
+  title: api-auth-example
+  contact:
+    email: 7wataaa@gmail.com
+paths:
+  /user:
+    get:
+      summary: トークンをもとにユーザー情報を返す
+      description: JWTトークンをAuthrizationヘッダーに入れてGETすると保存されているユーザー情報を返却する
+      parameters:
+        - name: Token
+          in: header
+          type: string
+          required: true
+          format: JWT
+      responses:
+        200:
+          description: 成功
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+        400:
+          description: なんらかの形式が違う場合のみbodyとerrorを返却する。リクエストが一切の認証情報を含まない場合、エラーメッセージを返さない。
+          headers:
+            WWW-Authenticate:
+              type: string
+              description: Bearer realm=""、もしくは Bearer error="invalid_request"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: invalid_request
+        401:
+          description: トークンが有効ではない場合に返却。有効期限切れの場合はこれに当たる。
+          headers:
+            WWW-Authenticate:
+              type: string
+              description: Bearer error="invalid_token"
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: invalid_token
+  /register:
+    post:
+      summary: ユーザーの新規登録を行う
+      description: ここにEmailとPasswordを投げてもらうとユーザーに本人確認メールが送信される。ユーザーにはトークンを返す。もし本人確認が済んでいるユーザーなら/loginと同じ動きをする
+      consumes:
+        - application/json
+      parameters:
+        - name: user
+          description: 新規登録のためにemailとPasswordを受け取る
+          in: body
+          schema:
+            $ref: '#/definitions/UserEmailPassword'
+      responses:
+        200:
+          description: トークンを返却する。expires_inは有効な秒数。
+          schema:
+            $ref: '#/definitions/TokenResponse'
+        400:
+          description: emailまたはpasswordが送られてこなかったり、形式が不正だったりしたときに返却。
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: emailが不正です
+  /login:
+    post:
+      summary: 登録済みユーザーのemailとPasswordを受け取ってtokenとrefresh_tokenを返す
+      description: 登録済みユーザーのemailとPasswordを受け取ってtokenとrefresh_tokenを返す
+      consumes:
+        - application/json
+      parameters:
+        - name: user
+          description: ログインのためにemailとPasswordを受け取る
+          in: body
+          schema:
+            $ref: '#/definitions/UserEmailPassword'
+      responses:
+        200:
+          description: トークンを返却する。expires_inは有効な秒数。
+          schema:
+            $ref: '#/definitions/TokenResponse'
+        400:
+          description: emailまたはpasswordが送られてこなかったり、形式が不正だったりしたときに返却。未登録データの場合はこれに当たる。
+          schema:
+            $ref: '#/definitions/UserEmailPasswordErrorResponse'
+  /identification:
+    get:
+      summary: 本確認を実施するためのURL
+      description: queryにidentificationIdを受け取り、identificationIdに紐付くアカウントを本人確認完了とみなす。
+      parameters:
+        - name: identificationId
+          in: query
+          type: string
+          required: true
+          description: 本人確認を行うためのid
+      responses:
+
+definitions:
+  UserEmailPassword:
+    description: リクエスト時のユーザーのemailとpasswordデータ
+    type: object
+    required:
+      - email
+      - password
+    properties:
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+  UserEmailPasswordErrorResponse:
+    description: messageの内容は場合によって変わる
+    type: object
+    properties:
+      message:
+        type: string
+        example: emailが不正です
+  TokenResponse:
+    description: レスポンス時のトークンとリフレッシュトークンのデータ
+    type: object
+    properties:
+      access_token:
+        type: string
+        example: xxxxx.yyyyy.zzzzz
+      token_type:
+        type: string
+        example: Bearer
+      expires_in:
+        type: number
+        example: 3600
+      refresh_token:
+        type: string
+        example: randomStringZn40An3
