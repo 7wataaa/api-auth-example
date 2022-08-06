@@ -19,8 +19,8 @@ const swaggerYAML = YAML.load('./docs/swagger.yml');
 
 console.dir(process.env);
 
+app.use('/api/v1', indexRouter);
 app.use('/', swaggerUi.serve, swaggerUi.setup(swaggerYAML));
-app.use('/api/v1/', indexRouter);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.sendStatus(404);
